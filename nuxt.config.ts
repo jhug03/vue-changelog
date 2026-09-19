@@ -1,5 +1,11 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  runtimeConfig: {
+    public: {
+      appwriteEndpoint: process.env.VITE_APPWRITE_ENDPOINT || "",
+      appwriteProjectId: process.env.VITE_APPWRITE_PROJECT_ID || "",
+    },
+  },
   vite: {
     optimizeDeps: {
       include: [

@@ -2,57 +2,93 @@
 import { ref, onMounted } from "vue";
 import { Client, Account, OAuthProvider } from "appwrite";
 
-const client = new Client();
-client
-  .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT)
-  .setProject(import.meta.env.VITE_APPWRITE_PROJECT_ID);
+const runtimeConfig = useRuntimeConfig();
+const appwriteEndpoint = runtimeConfig.public?.appwriteEndpoint || import.meta.env.VITE_APPWRITE_ENDPOINT || "";
+const appwriteProjectId = runtimeConfig.public?.appwriteProjectId || import.meta.env.VITE_APPWRITE_PROJECT_ID || "";
+const hasAppwriteConfig = appwriteEndpoint && appwriteProjectId;
 
-const account = new Account(client);
+let account = null;
 
-const user = ref(null);
-
-const checkSession = async () => {
-  try {
-    user = await account.get()
-    updateUI()
-  } catch (error) {
-    if (error.code === 401) {
-      user = null
-    } else {
-      console.error('Session error:', error)
-    }
-    updateUI()
-  }
+if (hasAppwriteConfig) {
+  const client = new Client();
+  client.setEndpoint(appwriteEndpoint).setProject(appwriteProjectId);
+  account = new Account(client);
 }
 
+const user = ref(null);
+const toggleMenu = ref(false);
+const searchQuery = ref("");
+
+const updateUI = () => {
+  // Kept as a lightweight hook for the auth state updates.
+};
+
+const checkSession = async () => {
+  if (!account) {
+    user.value = null;
+    return;
+  }
+
+  try {
+    user.value = await account.get();
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === 401) {
+      user.value = null;
+    } else {
+      console.error("Session error:", error);
+    }
+  } finally {
+    updateUI();
+  }
+};
+
 const loginWithGithub = async () => {
+  if (!account) {
+    console.warn("Appwrite is not configured. Add your env variables to enable login.");
+    return;
+  }
+
   try {
     await account.createOAuth2Session({
       provider: OAuthProvider.Github,
-      success: 'http://localhost:3000/',
-      failure: 'http://localhost:3000/',
-    })
+      success: "http://localhost:3000/",
+      failure: "http://localhost:3000/",
+    });
   } catch (error) {
-    console.error('Login error:', error)
+    console.error("Login error:", error);
   }
-}
+};
 
 const logout = async () => {
-  try {
-    await account.deleteSession({ sessionId: 'current' })
-    user = null
-    updateUI()
-  } catch (error) {
-    console.error('Logout error:', error)
+  if (!account) {
+    user.value = null;
+    return;
   }
-}
+
+  try {
+    await account.deleteSession({ sessionId: "current" });
+    user.value = null;
+    updateUI();
+  } catch (error) {
+    console.error("Logout error:", error);
+  }
+};
+
+const handleSearch = () => {
+  const query = searchQuery.value.trim();
+
+  if (!query) {
+    return;
+  }
+
+  console.log("Search query:", query);
+};
 
 onMounted(() => {
-  checkSession();
+  if (hasAppwriteConfig) {
+    checkSession();
+  }
 });
-
-const toggleMenu = ref(false);
-const searchQuery = ref('');
 
 function toggleColourMode() {
   const icon = document.getElementById("triangle-icon");

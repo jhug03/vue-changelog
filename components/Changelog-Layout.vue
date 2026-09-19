@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { marked } from 'marked';
 
 const releases = ref([]);
