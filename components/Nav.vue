@@ -49,10 +49,12 @@ const loginWithGithub = async () => {
   }
 
   try {
+    const redirectUrl = new URL(useRuntimeConfig().app.baseURL, window.location.origin).toString();
+
     await account.createOAuth2Session({
       provider: OAuthProvider.Github,
-      success: "http://localhost:3000/",
-      failure: "http://localhost:3000/",
+      success: redirectUrl,
+      failure: redirectUrl,
     });
   } catch (error) {
     console.error("Login error:", error);
